@@ -1,6 +1,6 @@
-# Ammar Amir — Chapter 23
+﻿# Ammar Amir — Chapter 23
 
-A birthday experience for Ammar Amir, made for 26 November 2026. The page contains the royal doors, birthday portrait, age reveal, cousin’s letter, four mystery gifts, interactive cake, and finale.
+A birthday experience for Ammar Amir, made for 26 November 2026. The page contains the royal doors, birthday portrait, age reveal, personal message, four mystery gifts, interactive cake, and finale.
 
 ## Run locally
 
@@ -33,6 +33,6 @@ The mystery gift suite checks the opening, audio cue scheduling, revisit, progre
 
 Keep `image.png` as the source portrait. The page serves three WebP sizes and uses the uncropped image in both compositions. To rebuild the prepared assets, run `node scripts/prepare-assets.mjs`.
 
-Music and sound effects are synthesized in app/audio.ts. Replay resets the gifts and preserves the mute preference.
+Music and sound effects are synthesized in app/audio.ts. Replay resets the gifts and restores the default sound setting.
 
-The four gift products in `public/assets/gift-*.webp` are custom generated product images with transparent backgrounds. The boxes use textured CSS surfaces animated with GSAP.
+The gift products use local transparent WebP images. The lipstick uses separately rendered cap, tube, and lipstick layers. The boxes use textured CSS surfaces animated with GSAP.

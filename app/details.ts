@@ -10,18 +10,8 @@ export const age = {
   days: (utcDay(celebration) - utcDay(birth)) / 86_400_000,
 };
 
-export const updates = [
-  'Age update: Successfully installed.',
-  'Maturity update: Still downloading…',
-  'Responsibilities: Automatically enabled.',
-  'Family questions about your future: Difficulty increased.',
-  'Congratulations! You are now officially old enough to give Eidi instead of receiving it.',
-];
-
 export const letter = [
   'Allah tumhein hamesha khush rakhe, sehat de, kamyabi de aur tumhari har achi dua qabool kare.',
-  'Dua hai ke tumhari zindagi ka har agla saal pehle se zyada khoobsurat ho.',
-  'Hamesha khush rehna, muskurate rehna aur apni funny harkatein kabhi mat chorna.',
-  'Waise 23 saal ka ho gaya hai, ab thora responsible bhi ho ja. Thora sa hi, zyada nahi.',
-  'May Allah bless you with happiness, peace, success, good health and a beautiful future.',
+  'Zindagi mein bohat aagay jao aur hamesha muskurate raho.',
+  'Stay blessed, Bhai!',
 ];

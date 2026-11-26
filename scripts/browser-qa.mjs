@@ -1,10 +1,12 @@
-import assert from 'node:assert/strict';
+﻿import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { chromium, webkit } from 'playwright';
 
-const url = process.env.BIRTHDAY_URL ?? 'http://localhost:3001';
+const url = process.env.BIRTHDAY_URL ?? 'http://localhost:3000';
 const engine = process.env.BIRTHDAY_ENGINE ?? 'chromium';
-const browser = engine === 'webkit' ? await webkit.launch() : await chromium.launch({ channel: 'chrome' });
+const browser = engine === 'webkit' ? await webkit.launch()
+  : process.env.BIRTHDAY_CDP ? await chromium.connectOverCDP(process.env.BIRTHDAY_CDP)
+    : await chromium.launch({ channel: 'chrome' });
 const directory = `artifacts/${engine}`;
 await mkdir(directory, { recursive: true });
 const errors = [];
@@ -45,6 +47,7 @@ async function hit(page, button) {
 
 async function open(page, animated) {
   await page.goto(url, { waitUntil: 'networkidle' });
+  if (animated) await page.screenshot({ path: `${directory}/${page.viewportSize().width}-door.png` });
   await page.locator('.portrait--hero img').evaluate((image) => image.decode());
   assert.equal(await page.locator('html').getAttribute('data-locked'), 'true');
   await hit(page, 'Tap to open your surprise.');
@@ -57,6 +60,29 @@ async function open(page, animated) {
   }
   await page.locator('.door').waitFor({ state: 'detached' });
   await page.waitForFunction(() => document.documentElement.dataset.locked === 'false');
+}
+
+async function inspectSoundPrompt(page) {
+  const prompt = page.getByRole('region', { name: 'Sound', exact: true });
+  const clip = prompt.locator('audio');
+  const punchline = prompt.getByText('Bas yehi sunana tha, Bhai.');
+  const start = prompt.getByRole('button', { name: 'Turn Sound On' });
+  assert.equal(await clip.evaluate((element) =>
+    element.paused && element.currentTime === 0 && !element.autoplay), true);
+  assert.equal(await punchline.count(), 0);
+  await hit(page, 'Mute audio');
+  await hit(page, 'Turn Sound On');
+  await page.waitForFunction(() => {
+    const media = document.querySelector('.sound-prompt audio');
+    return !media.paused && media.currentTime > 0 && !media.muted;
+  });
+  assert.equal(await start.getAttribute('aria-disabled'), 'true');
+  assert.equal(await punchline.count(), 0);
+  await punchline.waitFor({ timeout: 15000 });
+  assert.equal(await clip.evaluate((element) => element.ended), true);
+  await hit(page, 'Play Again');
+  await page.waitForFunction(() => !document.querySelector('.sound-prompt audio').paused);
+  await page.waitForFunction(() => document.querySelector('.sound-prompt audio').ended, null, { timeout: 15000 });
 }
 
 
@@ -74,7 +100,18 @@ async function inspectGift(page, number, name, count, label) {
   const startPitch = { 1: 370, 2: 420, 3: 143, 4: 530 }[number];
   assert.equal(await page.evaluate((pitch) => window.giftPitches.filter((value) => value === pitch).length, startPitch), 0);
   const dialog = page.getByRole('dialog');
-  const image = dialog.locator('.gbox-object img');
+  await page.evaluate(() => {
+    const frames = [];
+    let previous = performance.now();
+    function sample(now) {
+      frames.push(now - previous);
+      previous = now;
+      if (document.querySelector('.focus-next')?.disabled) requestAnimationFrame(sample);
+    }
+    window.giftFrames = frames;
+    requestAnimationFrame(sample);
+  });
+  const image = dialog.locator('.gbox-object .gift-product');
   const next = dialog.getByRole('button', { name: 'Next Gift', includeHidden: true });
   assert.equal(await next.isEnabled(), false);
   await page.keyboard.press('Escape');
@@ -101,7 +138,11 @@ async function inspectGift(page, number, name, count, label) {
     const bounds = img.getBoundingClientRect();
     return bounds.top >= 0 && bounds.left >= 0 && bounds.right <= innerWidth && bounds.bottom <= innerHeight;
   }));
-  assert.equal(await page.locator('.mystery-progress').textContent(), `${count} of 4 gifts opened`);
+  assert.equal(await page.locator('.mystery-progress').textContent(), `${count}/4 Gifts Opened`);
+  const frames = await page.evaluate(() => window.giftFrames.slice(1).sort((a, b) => a - b));
+  const average = frames.reduce((sum, duration) => sum + duration, 0) / frames.length;
+  const p95 = frames[Math.floor(frames.length * .95)];
+  console.log(`${label} gift ${number}: ${(1000 / average).toFixed(1)} rAF/s, p95 ${p95?.toFixed(1)} ms (${frames.length} intervals)`);
   if (label) await page.screenshot({ path: `${directory}/${label}-gift-${number}-revealed.png` });
   await next.click();
   await dialog.waitFor({ state: 'detached' });
@@ -131,37 +172,55 @@ try {
     track(page, label);
     await open(page, true);
     await checkBounds(page, label);
+    assert.equal(await page.getByText('Happy Birthday', { exact: true }).count(), 1);
+    assert.equal(await page.locator('main').getByText(/relationship|eligibility|transaction|cousin|mehnat/i).count(), 0);
+    await page.screenshot({ path: `${directory}/${label}-hero.png` });
+    for (const [name, selector] of [['level', '#level'], ['letter', '.letter'], ['cake', '#cake'], ['finale', '.finale']]) {
+      await page.locator(selector).evaluate(node => node.scrollIntoView());
+      await page.waitForFunction(target => [...document.querySelectorAll(target + ' [data-reveal]')].some(node =>
+        Number(getComputedStyle(node).opacity) > .95), selector);
+      await page.screenshot({ path: `${directory}/${label}-${name}.png` });
+    }
     await page.locator('#surprise').evaluate((section) => section.scrollIntoView());
     await page.waitForFunction(() => Number(getComputedStyle(document.querySelector('.mystery-grid')).opacity) > .98);
     assert.equal(await page.locator('.gift-card').count(), 4);
-    assert.equal(await page.locator('.gbox-object img').count(), 0);
+    assert.equal(await page.locator('.gbox-object .gift-product').count(), 0);
     const columns = await page.locator('.mystery-grid').evaluate((grid) => getComputedStyle(grid).gridTemplateColumns.split(' ').length);
     assert.equal(columns, mobile ? 2 : 4);
     await page.screenshot({ path: `${directory}/${label}-gifts.png` });
     await inspectGift(page, 2, 'Chusni Ultra', 1, label);
     await inspectGift(page, 1, 'Banana Pro Max', 2, label);
-    await inspectGift(page, 3, 'Pamper Pro 23', 3, label);
-    await inspectGift(page, 4, "Ammi's Wireless Remote \u2014 Pro Max", 4, label);
+    await inspectGift(page, 3, 'Pamper Pro Max', 3, label);
+    await inspectGift(page, 4, 'Lipstick Pro Max', 4, label);
     await page.locator('.mystery-confetti').waitFor();
-    await page.getByText('Your complete childhood starter pack is ready.').waitFor();
+    await page.getByText('Bas Bhai, budget khatam!').waitFor();
     assert.equal(await page.locator('html').evaluate((node) => node.scrollWidth - node.clientWidth), 0);
     await page.evaluate(() => window.scrollTo(0, 0));
-    assert.equal(await page.locator('.mystery-progress').textContent(), '4 of 4 gifts opened');
+    assert.equal(await page.locator('.mystery-progress').textContent(), '4/4 Gifts Opened');
     await hit(page, 'Revisit gift 1, Banana Pro Max');
     await page.getByRole('button', { name: 'Next Gift' }).click();
     await page.getByRole('dialog').waitFor({ state: 'detached' });
-    assert.equal(await page.locator('.mystery-progress').textContent(), '4 of 4 gifts opened');
-    await hit(page, 'Continue the Celebration');
+    assert.equal(await page.locator('.mystery-progress').textContent(), '4/4 Gifts Opened');
+    await hit(page, 'Continue');
     await page.waitForFunction(() => Math.abs(document.querySelector('#cake').getBoundingClientRect().top) < 3);
     await hit(page, 'Blow Out the Candles');
-    await page.getByText('Wish made').waitFor();
+    await page.waitForFunction(() => document.querySelector('#cake').dataset.blown === 'true');
+    assert.equal(await page.getByRole('button', { name: 'Blow Out the Candles' }).isDisabled(), true);
+    await inspectSoundPrompt(page);
     await hit(page, 'Relive the Experience');
     await page.locator('.door').waitFor();
     await page.waitForFunction(() => document.activeElement?.classList.contains('door-button'));
     await hit(page, 'Tap to open your surprise.');
     await page.locator('.door').waitFor({ state: 'detached' });
-    assert.equal(await page.locator('.mystery-progress').textContent(), '0 of 4 gifts opened');
+    assert.equal(await page.locator('.mystery-progress').textContent(), '0/4 Gifts Opened');
     assert.equal(await page.locator('.gift-card[data-open="true"], .mystery-confetti').count(), 0);
+    assert.equal(await page.locator('.sound-prompt audio').evaluate(element => element.paused && element.currentTime === 0), true);
+    assert.equal(await page.locator('#cake').getAttribute('data-blown'), 'false');
+    await hit(page, 'Mute audio');
+    await hit(page, 'Relive the Experience');
+    await page.locator('.door').waitFor();
+    await page.getByRole('button', { name: 'Mute audio' }).waitFor();
+    assert.equal(await page.evaluate(() => scrollY), 0);
     await page.close();
     console.log(`PASS ${engine} ${label}, all four animated gifts, revisit, cake, and replay`);
   }
@@ -175,10 +234,10 @@ try {
     await next.waitFor();
     assert.equal(await page.locator('html').evaluate((node) => node.scrollWidth - node.clientWidth), 0);
     assert.equal(await page.locator('.mystery-focus').evaluate((node) => node.scrollWidth - node.clientWidth), 0);
-    const box = await page.locator('dialog .gbox-object img').boundingBox();
+    const box = await page.locator('dialog .gbox-object .gift-product').boundingBox();
     assert.ok(box.x >= 0 && box.y >= 0 && box.x + box.width <= width && box.y + box.height <= height);
     await next.click();
-    assert.equal(await page.locator('.mystery-progress').textContent(), '1 of 4 gifts opened');
+    assert.equal(await page.locator('.mystery-progress').textContent(), '1/4 Gifts Opened');
     await page.close();
   }
   assert.deepEqual(errors, []);

@@ -1,4 +1,4 @@
-.cake-scene { min-height: 94svh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 5rem var(--pad) 3rem; text-align: center; overflow: hidden; background: #0c0b0d; }
+﻿.cake-scene { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: clamp(3rem, 7svh, 6rem) var(--pad); text-align: center; overflow: hidden; background: #0c0b0d; }
 .cake-scene > *:not(.cake-halo) { position: relative; }
 .cake-scene h2 { margin: .7rem auto 0; }
 .cake-halo { z-index: -1; pointer-events: none; position: absolute; inset: 0; transition: opacity .85s; background: radial-gradient(ellipse at 50% 50%,#4b2c13 0,#221810 37%,transparent 74%); }
@@ -26,6 +26,3 @@
 .cake-scene[data-blown="true"] .candle-flame { animation: none; opacity: 0; transform: scale(.15); transition: opacity .2s,transform .2s; }
 .cake-scene[data-blown="true"] .candle-smoke { animation: smoke 1.5s ease-out; }
 @keyframes smoke { 12% { opacity: .39; } 100% { opacity: 0; transform: translate(25%,-265%) scale(2.5,1.65); } }
-.cake-prayer { min-height: 6rem; display: grid; align-content: center; max-width: 35rem; color: #e8ceb0; font: clamp(1rem,2.1vi,1.26rem)/1.48 var(--display); margin-top: .65rem; }
-.cake-prayer p { animation: prayer-in .72s both; }
-@keyframes prayer-in { from { opacity: 0; transform: translateY(10px); } }

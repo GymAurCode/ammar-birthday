@@ -1,4 +1,4 @@
-@import 'tailwindcss';
+﻿@import 'tailwindcss';
 @import './story.css';
 @import './props.css';
 @import './mystery.css';
@@ -106,12 +106,10 @@ h1 em, h2 em { color: var(--gold-ink); font-weight: 500; }
 .invite-insignia svg { width: 38px; height: auto; }
 .invite-kicker { display: flex; align-items: center; justify-content: center; gap: .8rem; }
 .invite-kicker > span { width: clamp(15px,5vw,50px); height: 1px; background: #b18a516d; }
-.invite-for { font: italic 1.2rem var(--display); color: #d9c2a1; margin: .65rem 0 .2rem; }
 .invitation h1 { font-size: clamp(2.8rem, 8.4vi, 8rem); line-height: 1.04; letter-spacing: -.065em; text-shadow: 0 3px 28px #090504; }
 .invitation time { color: #dcb883; display: block; font-size: .85rem; text-transform: uppercase; letter-spacing: .21em; margin: 1.25rem 0 0; }
-.invite-message { color: #dfcfb6; margin: 1.2rem 0 .75rem; font: italic clamp(.96rem, 2vi, 1.23rem) var(--display); }
 .door-button {
-  color: #f1d5a5; display: inline-flex; align-items: center; gap: .64rem; min-height: 46px; padding: 0 .9rem 0 .3rem;
+  color: #f1d5a5; display: inline-flex; align-items: center; gap: .64rem; min-height: 46px; margin-top: 1.2rem; padding: 0 .9rem 0 .3rem;
   border: 1px solid #b78a506b; border-radius: 99px; background: #17110e; font-weight: 750; font-size: .79rem;
 }
 .door-button:after { content: ''; position: fixed; inset: 0; }
@@ -128,7 +126,6 @@ h1 em, h2 em { color: var(--gold-ink); font-weight: 500; }
 .hero-text .eyebrow span { display: block; width: 2.8rem; height: 1px; background: #c99d60; }
 .hero h1 { font-size: clamp(5.9rem, min(12vi, 19vh), 13.5rem); line-height: .82; letter-spacing: -.095em; }
 .hero h1 em { display: block; margin-left: .08em; }
-.hero-description { text-transform: uppercase; letter-spacing: .2em; font-size: .84rem; color: #e9ce9e; margin-top: 1.95rem; }
 .hero-date { font-size: .88rem; color: #cec0a8; margin-top: .78rem; }
 .portrait { position: relative; isolation: isolate; }
 .portrait--hero { position: absolute; right: var(--pad); top: 50%; translate: 0 -50%; width: min(51vw, 62vh, 59rem); }
@@ -149,7 +146,7 @@ h1 em, h2 em { color: var(--gold-ink); font-weight: 500; }
 .scroll-cue i:before { content: ''; display: block; width: 2px; height: 5px; border-radius: 5px; background: #dfb879; margin: 3px auto; animation: scroll-bead 1.8s infinite; }
 @keyframes scroll-bead { 60%,100% { transform: translateY(6px); opacity: .2; } }
 @media (max-width: 740px) and (orientation: portrait) {
-  .hero-running { padding-inline: max(1.75rem, 7vw); font-size: .63rem; }
+  .hero-running { padding-inline: max(1.75rem, var(--pad)); font-size: .63rem; }
   .hero-composition { align-self: stretch; align-items: start; margin: 0; padding: 0 max(1.75rem, 7vw) 0; }
   .portrait--hero { top: clamp(13px, 3svh, 42px); right: 50%; translate: 50% 0; width: min(90vw, 52svh); }
 
@@ -158,7 +155,6 @@ h1 em, h2 em { color: var(--gold-ink); font-weight: 500; }
   .hero-text .eyebrow span { width: 1.6rem; }
   .hero h1 { font-size: clamp(4.1rem, 16vi, 7rem); }
   .hero h1 em { display: inline; margin-left: 0; }
-  .hero-description { font-size: .68rem; margin-top: .95rem; letter-spacing: .13em; }
   .hero-date { margin-top: .4rem; font-size: .78rem; }
   .scroll-cue { justify-self: start; margin-left: max(1.75rem, 7vw); font-size: .72rem; }
   .door-handle { top: 67%; }
@@ -172,13 +168,11 @@ h1 em, h2 em { color: var(--gold-ink); font-weight: 500; }
 @media (orientation: landscape) and (max-height: 530px) {
   .invite-insignia { width: 44px; height: 44px; margin-bottom: .62rem; }
   .invite-insignia svg { width: 26px; }
-  .invite-for { margin: .3rem 0 0; }
   .invitation h1 { font-size: 3.45rem; }
-  .invitation time, .invite-message { margin-top: .6rem; }
+  .invitation time { margin-top: .6rem; }
   .hero-running { padding-top: 1.25rem; }
   .hero-composition { padding-block: .5rem; }
   .hero h1 { font-size: clamp(3.6rem,15vh,6.8rem); }
-  .hero-description { margin-top: .85rem; }
   .hero-date { margin-top: .5rem; }
   .scroll-cue { margin-bottom: .5rem; }
 }

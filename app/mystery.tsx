@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties, RefObject } from 'react';
@@ -7,12 +7,11 @@ import Image from 'next/image';
 import { Dust } from './art';
 import type { BirthdayAudio } from './audio';
 
-type GiftCue = 'banana' | 'pacifier' | 'diaper' | 'chappal';
+type GiftCue = 'banana' | 'pacifier' | 'diaper' | 'lipstick';
 
 type Gift = {
   number: string;
   tone: 'onyx' | 'emerald' | 'burgundy' | 'aurum';
-  kicker: string;
   name: string;
   description: string;
   caption: string;
@@ -26,10 +25,9 @@ const gifts: Gift[] = [
   {
     number: '01',
     tone: 'onyx',
-    kicker: 'Premium imported energy booster',
     name: 'Banana Pro Max',
-    description: '23 saal ke ho gaye ho, sehat ka khayal rakha karo.',
-    caption: '100% organic. Charger included nahi hai.',
+    description: 'Sehat ka khayal rakha kar, Bhai.',
+    caption: '100% organic.',
     image: '/assets/gift-banana.webp',
     alt: 'A realistic ripe yellow banana',
     sound: 'banana',
@@ -38,10 +36,9 @@ const gifts: Gift[] = [
   {
     number: '02',
     tone: 'emerald',
-    kicker: 'Advanced emotional support device',
     name: 'Chusni Ultra',
-    description: 'Jab ghar wale daantein, toh rona nahi. Yeh use kar lena.',
-    caption: 'Suitable for ages 0–23.',
+    description: 'Jab rona aaye, kaam aa jayegi.',
+    caption: 'Ages 0–23.',
     image: '/assets/gift-pacifier.webp',
     alt: 'A realistic blue baby pacifier',
     sound: 'pacifier',
@@ -50,10 +47,9 @@ const gifts: Gift[] = [
   {
     number: '03',
     tone: 'burgundy',
-    kicker: 'Professional emergency protection kit',
-    name: 'Pamper Pro 23',
-    description: 'Emergency situations ke liye. Safety first, bhai!',
-    caption: 'Extra protection for unexpected situations.',
+    name: 'Pamper Pro Max',
+    description: 'Emergency ke liye rakh le.',
+    caption: 'Extra Protection.',
     image: '/assets/gift-diaper.webp',
     alt: 'A realistic clean white baby diaper',
     sound: 'diaper',
@@ -62,13 +58,12 @@ const gifts: Gift[] = [
   {
     number: '04',
     tone: 'aurum',
-    kicker: 'Long range discipline device',
-    name: "Ammi's Wireless Remote — Pro Max",
-    description: 'Ammi ki taraf se special gift. Bina Bluetooth ke kaam karti hai.',
-    caption: 'Target accuracy: 100%. Escape probability: 0%.',
-    image: '/assets/gift-chappal.webp',
-    alt: 'A realistic blue Pakistani rubber chappal',
-    sound: 'chappal',
+    name: 'Lipstick Pro Max',
+    description: 'Bhai, birthday pe thora tayyar bhi ho jana.',
+    caption: 'Shade: Birthday Special.',
+    image: '/assets/gift-lipstick.webp',
+    alt: 'Red lipstick in a black-and-gold case',
+    sound: 'lipstick',
     tilt: 6,
   },
 ];
@@ -78,8 +73,12 @@ function GiftBox({ gift, open, focused = false }: { gift: Gift; open: boolean; f
     <span className="gbox-aura" />
     <span className="gbox-shadow" />
     {(open || focused) && <span className="gbox-object">
-      <Image src={gift.image} alt={focused ? gift.alt : ""} width={520} height={520} unoptimized
-        loading={focused ? "eager" : "lazy"} aria-hidden={!open} draggable={false} />
+      {gift.sound === 'lipstick' && <Image className="lipstick-bullet" src="/assets/gift-lipstick-bullet.webp"
+        alt="" width={400} height={660} unoptimized loading={focused ? 'eager' : 'lazy'} draggable={false} />}
+      <Image className="gift-product" src={gift.image} alt={focused ? gift.alt : ''} width={520} height={520} unoptimized
+        loading={focused ? 'eager' : 'lazy'} aria-hidden={!open} draggable={false} />
+      {gift.sound === 'lipstick' && focused && !open && <Image className="lipstick-cap" src="/assets/gift-lipstick-cap.webp"
+        alt="" width={400} height={660} unoptimized loading="eager" draggable={false} />}
     </span>}
     <span className="gbox-body">
       <span className="gbox-top" />
@@ -130,6 +129,7 @@ export function MysteryGifts({ audio }: { audio: RefObject<BirthdayAudio | null>
   const overlay = useRef<HTMLDialogElement>(null);
   const origin = useRef<HTMLButtonElement>(null);
   const busy = useRef(false);
+  const complete = useRef<HTMLDivElement>(null);
   const closing = useRef<gsap.core.Timeline>(null);
   const nextButton = useRef<HTMLButtonElement>(null);
   const count = opened.filter(Boolean).length;
@@ -156,11 +156,17 @@ export function MysteryGifts({ audio }: { audio: RefObject<BirthdayAudio | null>
       setRevealed(true);
     };
 
+    let cancelled = false;
+    const images = Array.from(scope.querySelectorAll('img'));
+    const decoded = Promise.allSettled(images.map((image) => image.decode()));
+    let assetsReady = false;
+    void decoded.then(() => { assetsReady = true; });
     const context = gsap.context(() => {
       if (reduced) {
-        gsap.delayedCall(.01, () => {
-          finish();
+        void decoded.then(() => {
+          if (cancelled) return;
           if (!alreadyOpen) audio.current?.play(currentGift.sound);
+          finish();
         });
         return;
       }
@@ -179,37 +185,53 @@ export function MysteryGifts({ audio }: { audio: RefObject<BirthdayAudio | null>
         return;
       }
 
-      const revealAt = currentGift.sound === 'chappal' ? 2.55 : 2.13;
+      const revealAt = 1.78;
+      const lipstick = currentGift.sound === 'lipstick';
+      const jokeAt = lipstick ? 3.04 : revealAt + .22;
+      const finishAt = lipstick ? 3.55 : 2.72;
       timeline
         .call(() => audio.current?.play('unwrap'), [], .58)
         .to(q('.gbox-bow'), { xPercent: 68, yPercent: -34, rotate: 30, duration: .43 }, .58)
         .to(q('.gbox-ribbon--v'), { scaleY: .35, yPercent: -78, rotate: -27, duration: .48 }, .64)
         .to(q('.gbox-ribbon--h'), { scaleX: .4, xPercent: 59, rotate: 18, duration: .48 }, .64)
         .to(q('.gbox-ribbon, .gbox-bow'), { opacity: 0, duration: .29 }, .87)
-        .to(q('.gbox-lid'), { yPercent: -14, xPercent: -24, rotate: -10, scale: .9, opacity: 1, duration: 1.05, ease: 'power2.inOut' }, .87)
+        .to(q('.gbox-lid'), { yPercent: -14, xPercent: -24, rotate: -10, scale: .9, opacity: 1, duration: .86, ease: 'power2.inOut' }, .88)
+        .call(() => audio.current?.play('lid'), [], .96)
         .to(q('.gbox-glow'), { opacity: 1, scale: 1.15, duration: .78 }, 1.12)
-        .call(() => audio.current?.play('shimmer'), [], 1.18)
+        .call(() => audio.current?.play('shimmer'), [], 1.2)
         .set(q('.gbox-lid'), { zIndex: 2 }, 1.42)
         .fromTo(q('.gbox-particles i'), { opacity: .88 }, {
           opacity: 0, yPercent: -2700, x: 'random(-36,36)', stagger: .045, duration: 1.13, ease: 'power2.out',
         }, 1.22)
+        .call(() => {
+          if (assetsReady) return;
+          timeline.pause();
+          void decoded.then(() => { if (!cancelled) timeline.resume(); });
+        }, [], revealAt - .01)
         .fromTo(q('.gbox-object'), { opacity: 0, yPercent: 81, scale: .58 }, {
           opacity: 1, yPercent: 0, scale: 1, rotate: currentGift.tilt, duration: .83, ease: 'power3.out',
         }, revealAt)
-        .call(() => audio.current?.play(currentGift.sound), [], revealAt + (currentGift.sound === 'chappal' ? .57 : .24))
-        .to(copy, { autoAlpha: 1, duration: .32 }, revealAt + .38)
-        .call(finish, [], revealAt + .83)
+        .call(() => audio.current?.play(currentGift.sound), [], jokeAt)
+        .to(copy, { autoAlpha: 1, duration: .32 }, jokeAt + .19)
+        .call(finish, [], finishAt)
         .to(q('.gbox-object'), {
-          yPercent: -4, rotate: currentGift.tilt + 4, duration: .8, yoyo: true, repeat: 1, ease: 'sine.inOut',
-        }, revealAt + .83);
+          yPercent: -4, rotate: currentGift.tilt + 4, duration: .75, yoyo: true, repeat: 1, ease: 'sine.inOut',
+        }, finishAt);
 
-      if (currentGift.sound === 'chappal') {
-        timeline.call(() => audio.current?.play('whoosh'), [], 1.9);
-        timeline.fromTo(q('.gbox-object img'), { rotateY: -45 }, { rotateY: 0, duration: .68, ease: 'back.out(1.5)' }, revealAt + .13);
+      if (lipstick) {
+        timeline
+          .fromTo(q('.gbox-object'), { rotateY: -48 }, { rotateY: 0, duration: .65, immediateRender: false }, revealAt)
+          .fromTo(q('.lipstick-bullet'), { yPercent: 39 }, { yPercent: 0, duration: .38, ease: 'power2.out' }, jokeAt)
+          .to(q('.lipstick-cap'), { yPercent: -38, xPercent: 90, rotate: 26, duration: .48, ease: 'power2.inOut' }, 2.55)
+          .to(q('.lipstick-cap'), { opacity: 0, duration: .26 }, 2.86)
+          .fromTo(q('.gbox-particles i'), { opacity: .85, y: 0 }, {
+            opacity: 0, y: -90, stagger: .027, duration: .55,
+          }, jokeAt);
       }
     }, scope);
 
     return () => {
+      cancelled = true;
       context.revert();
       closing.current?.kill();
       closing.current = null;
@@ -224,6 +246,7 @@ export function MysteryGifts({ audio }: { audio: RefObject<BirthdayAudio | null>
 
   useEffect(() => {
     if (!confetti) return;
+    complete.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     const timer = window.setTimeout(() => setConfetti(false), 2100);
     return () => window.clearTimeout(timer);
   }, [confetti]);
@@ -234,7 +257,7 @@ export function MysteryGifts({ audio }: { audio: RefObject<BirthdayAudio | null>
     busy.current = true;
     setSelection({ index, alreadyOpen: opened[index] });
     audio.current?.unlock();
-    audio.current?.play('select');
+    if (!opened[index] && !matchMedia('(prefers-reduced-motion: reduce)').matches) audio.current?.play('suspense');
   }
 
   function close() {
@@ -245,10 +268,7 @@ export function MysteryGifts({ audio }: { audio: RefObject<BirthdayAudio | null>
     const done = () => {
       if (count === 4 && !selection?.alreadyOpen && !reduced) {
         setConfetti(true);
-        audio.current?.play('celebrate');
-        window.setTimeout(() => {
-          document.querySelector('.mystery-complete')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 500);
+        audio.current?.play('confetti');
       }
       setSelection(null);
       setRevealed(false);
@@ -267,7 +287,7 @@ export function MysteryGifts({ audio }: { audio: RefObject<BirthdayAudio | null>
         y: rect ? rect.top + rect.height / 2 - (target.top + target.height / 2) : 0,
         scale: rect ? rect.width / target.width : .55, duration: .48, ease: 'power2.inOut',
       }, 0)
-      .to(scope, { opacity: 0, duration: .24 }, .26);
+      .to(scope.querySelector('.mystery-focus-bg'), { opacity: 0, duration: .36 }, .07);
   }
 
   function continueCelebration() {
@@ -280,13 +300,9 @@ export function MysteryGifts({ audio }: { audio: RefObject<BirthdayAudio | null>
     <section className="scene mystery-gifts" id="surprise" aria-labelledby="mystery-title">
       <Dust count={13} />
       <header className="mystery-header">
-        <div className="mystery-intro">
-          <p data-reveal>Wait… The surprises aren&apos;t over yet.</p>
-          <p data-reveal>23rd birthday hai, toh ek gift se kaise kaam chalega?</p>
-          <p data-reveal>Four special gifts, exclusively for you.</p>
-        </div>
-        <h2 id="mystery-title" data-reveal>THE BIRTHDAY <em>SURPRISE BOX</em></h2>
-        <p className="mystery-subtitle" data-reveal>Choose wisely, birthday boy.</p>
+        <p className="mystery-intro" data-reveal>Ruko… gifts abhi baqi hain.</p>
+        <h2 id="mystery-title" data-reveal>Something Special <em>For You</em></h2>
+        <p className="mystery-subtitle" data-reveal>Tap a gift to open it.</p>
       </header>
 
       <div className="mystery-grid" data-reveal>
@@ -300,22 +316,13 @@ export function MysteryGifts({ audio }: { audio: RefObject<BirthdayAudio | null>
           aria-label={opened[index] ? `Revisit gift ${index + 1}, ${item.name}` : `Open mystery gift ${index + 1}`}
         >
           <span className="gift-visual"><GiftBox gift={item} open={opened[index]} /></span>
-          <span className="gift-label">{opened[index] ? 'Tap to revisit' : 'Tap to Open'}</span>
         </button>)}
       </div>
 
-      <div className="mystery-status">
-        <p className="mystery-progress" aria-live="polite"><b>{count}</b> of <b>4</b> gifts opened</p>
-        <span className="mystery-dots" aria-hidden="true">
-          {opened.map((value, index) => <i key={index} data-open={value} />)}
-        </span>
-      </div>
-
-      {count === 4 && <div className="mystery-complete" aria-live="polite">
-        <h3>Congratulations!</h3>
-        <p className="mystery-complete-line">Your complete childhood starter pack is ready.</p>
-        <p className="mystery-complete-quip">23 saal ki umar mein bachpan ki yaadein taza karwa di.</p>
-        <button className="button button--gold" type="button" onClick={continueCelebration}>Continue the Celebration</button>
+      <p className="mystery-progress" aria-live="polite">{count}/4 Gifts Opened</p>
+      {count === 4 && <div ref={complete} className="mystery-complete">
+        <p>Bas Bhai, budget khatam!</p>
+        <button className="button button--gold" type="button" onClick={continueCelebration}>Continue</button>
       </div>}
     </section>
 
@@ -324,7 +331,6 @@ export function MysteryGifts({ audio }: { audio: RefObject<BirthdayAudio | null>
       <div className="mystery-focus-shell">
         <div className="focus-gift"><GiftBox gift={gift} open={opened[selection.index]} focused /></div>
         <div className="focus-copy" data-visible={revealed}>
-          <p className="eyebrow">{gift.kicker}</p>
           <h3 id="focus-title">{gift.name}</h3>
           <p className="focus-description">{gift.description}</p>
           <p className="focus-caption">{gift.caption}</p>

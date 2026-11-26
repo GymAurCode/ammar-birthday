@@ -1,4 +1,4 @@
-type Cue = 'unlock' | 'door' | 'firework' | 'select' | 'unwrap' | 'shimmer' | 'banana' | 'pacifier' | 'diaper' | 'chappal' | 'whoosh' | 'celebrate' | 'confetti';
+﻿type Cue = 'unlock' | 'door' | 'firework' | 'suspense' | 'unwrap' | 'lid' | 'shimmer' | 'banana' | 'pacifier' | 'diaper' | 'lipstick' | 'celebrate' | 'confetti';
 
 export class BirthdayAudio {
   private context?: AudioContext;
@@ -9,6 +9,7 @@ export class BirthdayAudio {
   private beat = 0;
   private muted = false;
   private playing = false;
+  private musicPaused = false;
 
   unlock() {
     const Audio = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -36,6 +37,14 @@ export class BirthdayAudio {
     if (this.context && this.master) {
       this.master.gain.setTargetAtTime(value ? 0 : 0.52, this.context.currentTime, 0.035);
     }
+  }
+
+  pauseMusic(paused: boolean) {
+    this.musicPaused = paused;
+    if (!this.playing || !this.context || !this.score) return;
+    const time = this.context.currentTime;
+    this.score.gain.cancelScheduledValues(time);
+    this.score.gain.setTargetAtTime(paused ? 0 : 1, time, paused ? .008 : .12);
   }
 
   private note(frequency: number, delay: number, duration: number, gain: number, type: OscillatorType = 'sine', target = this.master, end?: number) {
@@ -75,8 +84,35 @@ export class BirthdayAudio {
     source.onended = () => { source.disconnect(); filter.disconnect(); volume.disconnect(); };
   }
 
+  private babyWail() {
+    const context = this.context;
+    const master = this.master;
+    if (!context || !master) return;
+    const voice = context.createOscillator();
+    const mouth = context.createBiquadFilter();
+    const volume = context.createGain();
+    const time = context.currentTime;
+    voice.type = 'sawtooth';
+    voice.frequency.setValueAtTime(420, time);
+    voice.frequency.exponentialRampToValueAtTime(735, time + .08);
+    voice.frequency.exponentialRampToValueAtTime(390, time + .37);
+    mouth.type = 'bandpass';
+    mouth.Q.value = .82;
+    mouth.frequency.setValueAtTime(1480, time);
+    mouth.frequency.exponentialRampToValueAtTime(1040, time + .36);
+    volume.gain.setValueAtTime(.001, time);
+    volume.gain.linearRampToValueAtTime(.19, time + .065);
+    volume.gain.linearRampToValueAtTime(.085, time + .18);
+    volume.gain.linearRampToValueAtTime(.13, time + .23);
+    volume.gain.exponentialRampToValueAtTime(.001, time + .39);
+    voice.connect(mouth).connect(volume).connect(master);
+    voice.start(time);
+    voice.stop(time + .4);
+    voice.onended = () => { voice.disconnect(); mouth.disconnect(); volume.disconnect(); };
+  }
+
   play(cue: Cue) {
-    if (this.muted) return;
+    if (this.muted || document.hidden || (cue !== 'unlock' && this.context?.state !== 'running')) return;
     switch (cue) {
       case 'unlock':
         this.rustle(2350, .12, .13);
@@ -91,13 +127,18 @@ export class BirthdayAudio {
         this.rustle(680, .48, .2);
         this.note(68, 0, .38, .18, 'sine', this.master, 35);
         break;
-      case 'select':
-        this.note(770, 0, .10, .08, 'triangle');
+      case 'suspense':
+        this.note(92, 0, .65, .095, 'sine', this.master, 145);
+        this.note(184, .1, .48, .042, 'triangle', this.master, 218);
         break;
       case 'unwrap':
         this.rustle(3400, .3, .12);
         this.rustle(2200, .22, .09, .14);
         this.rustle(4600, .18, .06, .3);
+        break;
+      case 'lid':
+        this.rustle(740, .29, .085);
+        this.note(110, 0, .2, .075, 'triangle', this.master, 62);
         break;
       case 'shimmer':
         [329.63, 493.88, 659.25, 987.77].forEach((pitch, i) => this.note(pitch, i * .11, .65, .07));
@@ -112,22 +153,16 @@ export class BirthdayAudio {
         this.note(650, .11, .23, .14, 'sine', this.master, 420);
         break;
       case 'pacifier':
-        this.note(420, 0, .14, .16, 'triangle', this.master, 710);
-        this.note(630, .16, .24, .18, 'triangle', this.master, 345);
+        this.babyWail();
         break;
       case 'diaper':
         this.rustle(830, .18, .19);
         this.note(143, 0, .29, .24, 'sawtooth', this.master, 72);
         this.note(243, .15, .14, .11, 'triangle', this.master, 136);
         break;
-      case 'chappal':
-        this.rustle(4200, .31, .33);
-        this.note(530, 0, .26, .13, 'triangle', this.master, 100);
-        this.note(118, .20, .12, .15, 'triangle', this.master, 63);
-        break;
-      case 'whoosh':
-        this.rustle(1800, .38, .2);
-        this.note(320, 0, .4, .07, 'sine', this.master, 90);
+      case 'lipstick':
+        this.note(530, 0, .19, .13, 'triangle', this.master, 900);
+        this.note(716, .12, .23, .12, 'sine', this.master, 272);
         break;
     }
   }
@@ -139,7 +174,7 @@ export class BirthdayAudio {
     const motif = [392, 440, 523.25, 493.88, 440, 329.63, 392, 0, 349.23, 392, 440, 523.25, 493.88, 392, 440, 0];
     const bass = [130.81, 110, 87.31, 98];
     const tick = () => {
-      if (document.hidden) return;
+      if (document.hidden || this.muted || this.musicPaused || this.context?.state !== 'running') return;
       const i = this.beat++ % motif.length;
       if (motif[i]) this.note(motif[i], .015, 1.05, .065, 'triangle', this.score);
       if (!(i % 4)) {
@@ -154,6 +189,7 @@ export class BirthdayAudio {
   reset() {
     clearInterval(this.timer);
     this.playing = false;
+    this.musicPaused = false;
     this.beat = 0;
     if (this.context && this.score) {
       this.score.gain.setTargetAtTime(0, this.context.currentTime, .035);

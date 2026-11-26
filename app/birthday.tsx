@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
@@ -8,6 +8,7 @@ import { BirthdayAudio } from './audio';
 import { age } from './details';
 import { makeFireworks } from './fireworks';
 import { MysteryGifts } from './mystery';
+import { SoundPrompt } from './sound-prompt';
 import { Cake, Finale, Hero, Letter, Level } from './scenes';
 
 function Door({ open, opening, reference }: {
@@ -27,10 +28,8 @@ function Door({ open, opening, reference }: {
     <div className="invitation">
       <div className="invite-insignia"><Crown /></div>
       <div className="invite-kicker"><span /><p className="eyebrow">Private Invitation</p><span /></div>
-      <p className="invite-for">For</p>
       <h1 id="invitation-title">Ammar <em>Amir</em></h1>
       <time dateTime="2026-11-26">26 November 2026</time>
-      <p className="invite-message">Something special is waiting for you.</p>
       <button className="door-button" type="button" onClick={open} disabled={opening}>
         <span className="key-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M8.5 3.5a4.5 4.5 0 1 0 3.2 7.65L20 19.5m-4-4 2.5-2.5m-.2 4.8 2.4-2.4" stroke="currentColor" strokeWidth="1.45" strokeLinecap="round"/><circle cx="8.5" cy="8" r="1" fill="currentColor"/></svg></span>
         <span>Tap to open your surprise.</span>
@@ -154,6 +153,7 @@ function Experience({ replay, focusDoor, muted, setMuted }: {
   }
 
   function celebrate() {
+    audio.current?.unlock();
     audio.current?.play('celebrate');
     fireworks.current?.launch();
   }
@@ -164,6 +164,11 @@ function Experience({ replay, focusDoor, muted, setMuted }: {
       {ready && <>
         <Level /><Letter /><MysteryGifts audio={audio} />
         <Cake onCelebrate={celebrate} /><Finale replay={replay} />
+        <SoundPrompt audio={audio} muted={muted} enableSound={() => {
+          audio.current?.unlock();
+          audio.current?.mute(false);
+          setMuted(false);
+        }} />
       </>}
     </main>
     <canvas ref={canvas} className="fireworks" aria-hidden="true" />
@@ -182,6 +187,7 @@ export default function Birthday() {
   const [run, setRun] = useState(0);
   const [muted, setMuted] = useState(false);
   function replay() {
+    setMuted(false);
     window.scrollTo({ top: 0, behavior: 'instant' });
     document.documentElement.dataset.locked = 'true';
     setRun((value) => value + 1);
