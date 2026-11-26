@@ -9,6 +9,7 @@ export class BirthdayAudio {
   private beat = 0;
   private muted = false;
   private playing = false;
+  private musicPaused = false;
 
   unlock() {
     const Audio = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -36,6 +37,14 @@ export class BirthdayAudio {
     if (this.context && this.master) {
       this.master.gain.setTargetAtTime(value ? 0 : 0.52, this.context.currentTime, 0.035);
     }
+  }
+
+  pauseMusic(paused: boolean) {
+    this.musicPaused = paused;
+    if (!this.playing || !this.context || !this.score) return;
+    const time = this.context.currentTime;
+    this.score.gain.cancelScheduledValues(time);
+    this.score.gain.setTargetAtTime(paused ? 0 : 1, time, paused ? .008 : .12);
   }
 
   private note(frequency: number, delay: number, duration: number, gain: number, type: OscillatorType = 'sine', target = this.master, end?: number) {
@@ -165,7 +174,7 @@ export class BirthdayAudio {
     const motif = [392, 440, 523.25, 493.88, 440, 329.63, 392, 0, 349.23, 392, 440, 523.25, 493.88, 392, 440, 0];
     const bass = [130.81, 110, 87.31, 98];
     const tick = () => {
-      if (document.hidden || this.muted || this.context?.state !== 'running') return;
+      if (document.hidden || this.muted || this.musicPaused || this.context?.state !== 'running') return;
       const i = this.beat++ % motif.length;
       if (motif[i]) this.note(motif[i], .015, 1.05, .065, 'triangle', this.score);
       if (!(i % 4)) {
@@ -180,6 +189,7 @@ export class BirthdayAudio {
   reset() {
     clearInterval(this.timer);
     this.playing = false;
+    this.musicPaused = false;
     this.beat = 0;
     if (this.context && this.score) {
       this.score.gain.setTargetAtTime(0, this.context.currentTime, .035);

@@ -8,6 +8,7 @@ import { BirthdayAudio } from './audio';
 import { age } from './details';
 import { makeFireworks } from './fireworks';
 import { MysteryGifts } from './mystery';
+import { SoundPrompt } from './sound-prompt';
 import { Cake, Finale, Hero, Letter, Level } from './scenes';
 
 function Door({ open, opening, reference }: {
@@ -37,8 +38,8 @@ function Door({ open, opening, reference }: {
   </section>;
 }
 
-function Experience({ replay, focusDoor, muted, setMuted }: {
-  replay: () => void; focusDoor: boolean; muted: boolean; setMuted: (value: boolean) => void;
+function Experience({ replay, focusDoor }: {
+  replay: () => void; focusDoor: boolean;
 }) {
   const [opening, setOpening] = useState(false);
   const [ready, setReady] = useState(false);
@@ -55,7 +56,6 @@ function Experience({ replay, focusDoor, muted, setMuted }: {
     gsap.registerPlugin(ScrollTrigger);
     ScrollTrigger.config({ ignoreMobileResize: true });
     const score = new BirthdayAudio();
-    score.mute(muted);
     audio.current = score;
     if (canvas.current) fireworks.current = makeFireworks(canvas.current, () => score.play('firework'));
     if (focusDoor) door.current?.querySelector('button')?.focus({ preventScroll: true });
@@ -66,7 +66,7 @@ function Experience({ replay, focusDoor, muted, setMuted }: {
       score.dispose();
       fireworks.current?.dispose();
     };
-    // A fresh audio engine is created for each replay. The control updates it directly between replays.
+    // A fresh audio engine is created for each replay.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -163,28 +163,20 @@ function Experience({ replay, focusDoor, muted, setMuted }: {
       {ready && <>
         <Level /><Letter /><MysteryGifts audio={audio} />
         <Cake onCelebrate={celebrate} /><Finale replay={replay} />
+        <SoundPrompt audio={audio} />
       </>}
     </main>
     <canvas ref={canvas} className="fireworks" aria-hidden="true" />
     {!ready && <Door open={open} opening={opening} reference={door} />}
-    <button className="audio-control" type="button" aria-label={muted ? 'Unmute audio' : 'Mute audio'} aria-pressed={muted}
-      onClick={() => { if (muted) audio.current?.unlock(); audio.current?.mute(!muted); setMuted(!muted); }}>
-      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M11 5v14l-5-4H3V9h3l5-4Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
-        <path d={muted ? 'm16 9 5 6m0-6-5 6' : 'M15 9a4 4 0 0 1 0 6m3-9a8 8 0 0 1 0 12'} stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-      </svg><span>{muted ? 'Sound off' : 'Sound on'}</span>
-    </button>
   </div>;
 }
 
 export default function Birthday() {
   const [run, setRun] = useState(0);
-  const [muted, setMuted] = useState(false);
   function replay() {
-    setMuted(false);
     window.scrollTo({ top: 0, behavior: 'instant' });
     document.documentElement.dataset.locked = 'true';
     setRun((value) => value + 1);
   }
-  return <Experience key={run} replay={replay} focusDoor={run > 0} muted={muted} setMuted={setMuted} />;
+  return <Experience key={run} replay={replay} focusDoor={run > 0} />;
 }

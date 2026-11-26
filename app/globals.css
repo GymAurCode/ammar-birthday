@@ -37,13 +37,6 @@ h1 em, h2 em { color: var(--gold-ink); font-weight: 500; }
 .button--gold:hover { background: #f0cb8b; color: #181008; }
 .button:disabled { opacity: .62; }
 .scene { position: relative; isolation: isolate; border-top: 1px solid #7b583735; }
-.audio-control {
-  position: fixed; z-index: 40; bottom: max(13px, env(safe-area-inset-bottom)); right: max(13px, env(safe-area-inset-right));
-  display: flex; align-items: center; gap: .55rem; height: 44px; padding: 0 .78rem; border-radius: 100px;
-  background: #101015; color: #e5c38b; border: 1px solid #b3915b65; font-size: .75rem; font-weight: 750;
-}
-.audio-control { transform: translateZ(0); }
-.audio-control:hover { background: #221b17; }
 .fireworks { position: fixed; z-index: 15; pointer-events: none; inset: 0; width: 100%; height: 100svh; }
 .fireworks[data-active="false"] { visibility: hidden; }
 .dust { position: absolute; z-index: 1; inset: 0; pointer-events: none; overflow: hidden; }
