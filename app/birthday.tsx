@@ -8,7 +8,6 @@ import { BirthdayAudio } from './audio';
 import { age } from './details';
 import { makeFireworks } from './fireworks';
 import { MysteryGifts } from './mystery';
-import { SoundPrompt } from './sound-prompt';
 import { Cake, Finale, Hero, Letter, Level } from './scenes';
 
 function Door({ open, opening, reference }: {
@@ -27,7 +26,7 @@ function Door({ open, opening, reference }: {
     <div className="invite-frame" aria-hidden="true"><i/><i/><i/><i/></div>
     <div className="invitation">
       <div className="invite-insignia"><Crown /></div>
-      <div className="invite-kicker"><span /><p className="eyebrow">Private Invitation</p><span /></div>
+      <div className="invite-kicker"><span /><p className="eyebrow">Specially made for</p><span /></div>
       <h1 id="invitation-title">Ammar <em>Amir</em></h1>
       <time dateTime="2026-11-26">26 November 2026</time>
       <button className="door-button" type="button" onClick={open} disabled={opening}>
@@ -164,11 +163,6 @@ function Experience({ replay, focusDoor, muted, setMuted }: {
       {ready && <>
         <Level /><Letter /><MysteryGifts audio={audio} />
         <Cake onCelebrate={celebrate} /><Finale replay={replay} />
-        <SoundPrompt audio={audio} muted={muted} enableSound={() => {
-          audio.current?.unlock();
-          audio.current?.mute(false);
-          setMuted(false);
-        }} />
       </>}
     </main>
     <canvas ref={canvas} className="fireworks" aria-hidden="true" />

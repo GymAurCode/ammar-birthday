@@ -35,29 +35,6 @@
 .share-status { font-size: .85rem; min-height: 1.3rem; }
 .share-link { border: 1px solid var(--line); width: 100%; min-width: 0; padding: .7rem; color: var(--light); background: #15100e; }
 
-.sound-prompt {
-  padding: 1.65rem var(--pad) max(3.9rem, calc(env(safe-area-inset-bottom) + 3.25rem));
-  background: radial-gradient(ellipse at 50% 4%, #21180f, #0b0a0c 72%);
-  text-align: center;
-}
-.sound-prompt-inner { display: grid; justify-items: center; gap: .75rem; }
-.sound-prompt-copy { color: #e6d4ba; font: italic 1.08rem/1.45 var(--display); }
-.button.sound-prompt-button {
-  display: inline-flex;
-  align-items: center;
-  gap: .55rem;
-  color: #f1d5a5;
-  background: linear-gradient(145deg, #2d2114, #120e0c);
-  box-shadow: inset 0 0 0 2px #0c0908;
-}
-.sound-prompt-button[aria-disabled="true"] { cursor: default; }
-.sound-prompt-reveal { display: inline-block; animation: sound-prompt-reveal .36s ease-out both; }
-.sound-prompt-error { color: #ddc7a7; font-size: .8rem; }
-@keyframes sound-prompt-reveal {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
 @media (max-width: 780px) {
   .level-inner, .finale-inner { grid-template-columns: 1fr; }
   .level-inner { gap: 1.25rem; }

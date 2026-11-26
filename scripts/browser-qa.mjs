@@ -62,29 +62,6 @@ async function open(page, animated) {
   await page.waitForFunction(() => document.documentElement.dataset.locked === 'false');
 }
 
-async function inspectSoundPrompt(page) {
-  const prompt = page.getByRole('region', { name: 'Sound', exact: true });
-  const clip = prompt.locator('audio');
-  const punchline = prompt.getByText('Bas yehi sunana tha, Bhai.');
-  const start = prompt.getByRole('button', { name: 'Turn Sound On' });
-  assert.equal(await clip.evaluate((element) =>
-    element.paused && element.currentTime === 0 && !element.autoplay), true);
-  assert.equal(await punchline.count(), 0);
-  await hit(page, 'Mute audio');
-  await hit(page, 'Turn Sound On');
-  await page.waitForFunction(() => {
-    const media = document.querySelector('.sound-prompt audio');
-    return !media.paused && media.currentTime > 0 && !media.muted;
-  });
-  assert.equal(await start.getAttribute('aria-disabled'), 'true');
-  assert.equal(await punchline.count(), 0);
-  await punchline.waitFor({ timeout: 15000 });
-  assert.equal(await clip.evaluate((element) => element.ended), true);
-  await hit(page, 'Play Again');
-  await page.waitForFunction(() => !document.querySelector('.sound-prompt audio').paused);
-  await page.waitForFunction(() => document.querySelector('.sound-prompt audio').ended, null, { timeout: 15000 });
-}
-
 
 async function inspectGift(page, number, name, count, label) {
   if (count === 1) {
@@ -206,7 +183,6 @@ try {
     await hit(page, 'Blow Out the Candles');
     await page.waitForFunction(() => document.querySelector('#cake').dataset.blown === 'true');
     assert.equal(await page.getByRole('button', { name: 'Blow Out the Candles' }).isDisabled(), true);
-    await inspectSoundPrompt(page);
     await hit(page, 'Relive the Experience');
     await page.locator('.door').waitFor();
     await page.waitForFunction(() => document.activeElement?.classList.contains('door-button'));
@@ -214,7 +190,6 @@ try {
     await page.locator('.door').waitFor({ state: 'detached' });
     assert.equal(await page.locator('.mystery-progress').textContent(), '0/4 Gifts Opened');
     assert.equal(await page.locator('.gift-card[data-open="true"], .mystery-confetti').count(), 0);
-    assert.equal(await page.locator('.sound-prompt audio').evaluate(element => element.paused && element.currentTime === 0), true);
     assert.equal(await page.locator('#cake').getAttribute('data-blown'), 'false');
     await hit(page, 'Mute audio');
     await hit(page, 'Relive the Experience');
