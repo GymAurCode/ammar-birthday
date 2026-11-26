@@ -3,13 +3,8 @@
 export class BirthdayAudio {
   private context?: AudioContext;
   private master?: GainNode;
-  private score?: GainNode;
   private noise?: AudioBuffer;
-  private timer?: ReturnType<typeof setInterval>;
-  private beat = 0;
   private muted = false;
-  private playing = false;
-  private musicPaused = false;
 
   unlock() {
     const Audio = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -20,9 +15,6 @@ export class BirthdayAudio {
         this.master = this.context.createGain();
         this.master.gain.value = this.muted ? 0 : 0.52;
         this.master.connect(this.context.destination);
-        this.score = this.context.createGain();
-        this.score.gain.value = 0;
-        this.score.connect(this.master);
         this.noise = this.context.createBuffer(1, this.context.sampleRate, this.context.sampleRate);
         const samples = this.noise.getChannelData(0);
         for (let i = 0; i < samples.length; i++) samples[i] = Math.random() * 2 - 1;
@@ -37,14 +29,6 @@ export class BirthdayAudio {
     if (this.context && this.master) {
       this.master.gain.setTargetAtTime(value ? 0 : 0.52, this.context.currentTime, 0.035);
     }
-  }
-
-  pauseMusic(paused: boolean) {
-    this.musicPaused = paused;
-    if (!this.playing || !this.context || !this.score) return;
-    const time = this.context.currentTime;
-    this.score.gain.cancelScheduledValues(time);
-    this.score.gain.setTargetAtTime(paused ? 0 : 1, time, paused ? .008 : .12);
   }
 
   private note(frequency: number, delay: number, duration: number, gain: number, type: OscillatorType = 'sine', target = this.master, end?: number) {
@@ -167,37 +151,7 @@ export class BirthdayAudio {
     }
   }
 
-  music() {
-    if (this.playing || !this.score || !this.context) return;
-    this.playing = true;
-    this.score.gain.setTargetAtTime(1, this.context.currentTime, .4);
-    const motif = [392, 440, 523.25, 493.88, 440, 329.63, 392, 0, 349.23, 392, 440, 523.25, 493.88, 392, 440, 0];
-    const bass = [130.81, 110, 87.31, 98];
-    const tick = () => {
-      if (document.hidden || this.muted || this.musicPaused || this.context?.state !== 'running') return;
-      const i = this.beat++ % motif.length;
-      if (motif[i]) this.note(motif[i], .015, 1.05, .065, 'triangle', this.score);
-      if (!(i % 4)) {
-        this.note(bass[i / 4], 0, 1.9, .085, 'sine', this.score);
-        this.note(bass[i / 4] * 1.5, .1, 1.6, .045, 'sine', this.score);
-      }
-    };
-    tick();
-    this.timer = setInterval(tick, 520);
-  }
-
-  reset() {
-    clearInterval(this.timer);
-    this.playing = false;
-    this.musicPaused = false;
-    this.beat = 0;
-    if (this.context && this.score) {
-      this.score.gain.setTargetAtTime(0, this.context.currentTime, .035);
-    }
-  }
-
   dispose() {
-    this.reset();
     if (this.context) void this.context.close().catch(() => {});
   }
 }

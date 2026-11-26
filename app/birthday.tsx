@@ -118,7 +118,6 @@ function Experience({ replay, focusDoor }: {
     const score = audio.current;
     score?.unlock();
     score?.play('unlock');
-    score?.music();
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const target = door.current;
     const pieces = gsap.utils.selector(target);

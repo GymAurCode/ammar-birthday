@@ -17,20 +17,17 @@ export function SoundPrompt({ audio }: {
 
   useEffect(() => {
     const clip = player.current;
-    const score = audio.current;
     return () => {
-      if (active.current) score?.pauseMusic(false);
       active.current = false;
       clip?.pause();
       shake.current?.cancel();
     };
-  }, [audio]);
+  }, []);
 
   function finish(ended: boolean, error = false) {
     if (!active.current) return;
     active.current = false;
     shake.current?.cancel();
-    audio.current?.pauseMusic(false);
     setPlaying(false);
     setFailed(error);
     if (ended) setRevealed(true);
@@ -43,7 +40,6 @@ export function SoundPrompt({ audio }: {
     setPlaying(true);
     setFailed(false);
     audio.current?.unlock();
-    audio.current?.pauseMusic(true);
     clip.currentTime = 0;
     // Safari needs play() in the original tap handler.
     void clip.play().catch(() => {
